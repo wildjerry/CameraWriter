@@ -4,8 +4,6 @@ import numpy as np
 
 import cv2
 
-import matplotlib.pyplot as plt
-
 import mediapipe as mp
 drawingModule = mp.solutions.drawing_utils
 handsModule = mp.solutions.hands
@@ -14,6 +12,12 @@ from time import sleep
 
 import shapely
 
+from threading import Thread
+
+from sys import exit
+
+import queue
+
 hands = handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, min_tracking_confidence=0.7, max_num_hands=2)
 
 def handle_keypress(event):
@@ -21,19 +25,6 @@ def handle_keypress(event):
     if event.key in ('q', 'Q'):
         print('keypress was q or Q')
         exit_key_pressed = True
-
-plt.gcf().canvas.mpl_connect('key_press_event', handle_keypress)
-
-def show_cv2_frame_matplotlib(frame):
-    if exit_key_pressed:
-        plt.close()
-        exit()
-    # Convert the frame from BGR (OpenCV format) to RGB (matplotlib format)
-    frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    plt.imshow(frame_rgb)
-    plt.axis('off')  # Hide the axis for a cleaner view
-    plt.show(block=False)  # Show the frame without blocking the main program
-    plt.pause(0.001)  # Short pause to allow the figure to refresh
 
 def vector(landmark):
     return np.array([landmark.x, landmark.y, landmark.z])
@@ -51,6 +42,19 @@ def in_bounds(point, bounds):
     shape = shapely.Polygon(bounds)
     return shape.contains(sP)
 
+frameQueue = queue.Queue(maxsize=2)
+
+def frame_shower():
+    while True:
+        frame = frameQueue.get(block=True)
+        cv2.imshow('Test hand', frame)
+
+        if cv2.waitKey(1) == 27:
+            break
+
+frame_show_thread = Thread(target=frame_shower)
+frame_show_thread.start()
+
 vs = cv2.VideoCapture(0)
 
 sleep(2.0)
@@ -59,7 +63,6 @@ pen_down = False
 curves = []
 
 while True:
-    plt.clf()
 
     ret, frame = vs.read()  # Capture a frame
     frame = cv2.flip(frame,1)
@@ -134,7 +137,4 @@ while True:
         for i in range(len(curve)-1):
             cv2.line(frame, curve[i], curve[i+1], (0,200,0), 10)
 
-    cv2.imshow('Test hand', frame)
-
-    if cv2.waitKey(1) == 27:
-        break
+    frameQueue.put(frame, block=True)
