@@ -13,6 +13,7 @@ from time import sleep
 import shapely
 
 from threading import Thread
+from _thread import interrupt_main
 
 from sys import exit
 
@@ -51,6 +52,8 @@ def frame_shower():
 
         if cv2.waitKey(1) == 27:
             break
+
+    interrupt_main()
 
 frame_show_thread = Thread(target=frame_shower)
 frame_show_thread.start()
@@ -115,6 +118,7 @@ while True:
 
             if hand.classification[0].label == "Left" and hand.classification[0].score >= 0.9:
                 full_up = min(thumb_up_amount, index_up_amount, middle_up_amount, ring_up_amount, pinkie_up_amount)
+
                 if full_up > 0.85 and thumb_hand_alignment > 0.95:
                     boundary = [ ( int(handLandmarks.landmark[i].x*width), int(handLandmarks.landmark[i].y*height) ) for i in [0,1,2,3,4,8,12,16,20,19,18,17]]
 
