@@ -15,8 +15,6 @@ import shapely
 from threading import Thread
 from _thread import interrupt_main
 
-from sys import exit
-
 import queue
 
 hands = handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, min_tracking_confidence=0.7, max_num_hands=2)
@@ -56,6 +54,7 @@ def frame_shower():
     interrupt_main()
 
 frame_show_thread = Thread(target=frame_shower)
+frame_show_thread.daemon = True
 frame_show_thread.start()
 
 vs = cv2.VideoCapture(0)
@@ -93,11 +92,11 @@ while True:
             y_coordinates = [landmark.y for landmark in handLandmarks.landmark]
             text_x = int(min(x_coordinates) * width)
             text_y = int(min(y_coordinates) * height) - 10
-            
+            '''
             cv2.putText(frame, f"{thumb_hand_alignment=}",
                 (text_x, text_y), cv2.FONT_HERSHEY_DUPLEX,
                 1, (88, 205, 54), 1, cv2.LINE_AA)
-            
+            '''
             if hand.classification[0].label == "Right" and hand.classification[0].score >= 0.9:
                 pen_was_down = pen_down
     
@@ -124,6 +123,7 @@ while True:
 
                     for i in range(len(boundary)-1):
                         cv2.line(frame, boundary[i], boundary[i+1], (200, 0, 200), 5)
+                    cv2.line(frame, boundary[0], boundary[-1], (200, 0, 200), 5) #to close the curve
                     old_curves = curves
                     curves = [ [] ]
                     for i in range(len(old_curves)):
@@ -132,13 +132,19 @@ while True:
                             if not in_bounds(old_curves[i][j], boundary):
                                 current_curve.append(old_curves[i][j])
                             else:
-                                curves.append(current_curve)
+                                if len(current_curve) > 1:
+                                    curves.append(current_curve)
                                 current_curve = []
-                        if current_curve:
-                            curves.append(current_curve)
 
+                        if len(current_curve)>1:
+                            curves.append(current_curve)
+    curve_count = 0
     for curve in curves:
+        curve_count+=1
         for i in range(len(curve)-1):
             cv2.line(frame, curve[i], curve[i+1], (0,200,0), 10)
+    cv2.putText(frame, f"{curve_count=}",
+    (30,30),cv2.FONT_HERSHEY_DUPLEX,
+    1, (88, 205, 54), 1, cv2.LINE_AA)
 
     frameQueue.put(frame, block=True)
