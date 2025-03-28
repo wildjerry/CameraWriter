@@ -67,6 +67,15 @@ sleep(2.0)
 pen_down = False
 curves = []
 
+def debug_t():
+    while True:
+        print(f'{type(curves)=}')
+        print(f'{curves=}')
+        sleep(1)
+debug_thread = Thread(target=debug_t)
+debug_thread.daemon = True
+#debug_thread.start()
+
 while True:
 
     ret, frame = vs.read()  # Capture a frame
@@ -147,8 +156,8 @@ while True:
         for i in range(len(curve)-1):
             cv2.line(frame, curve[i], curve[i+1], (200,15,15), 10)
     
-    for curves in db_con.otherPaths:
-        for curve in curves:
+    for curve_set in db_con.otherPaths:
+        for curve in curve_set:
             for i in range(len(curve)-1):
                 cv2.line(frame, curve[i], curve[i+1], (15,15,200), 10)
             

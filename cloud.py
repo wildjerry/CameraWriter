@@ -35,12 +35,14 @@ class db_connection():
         self.pathUpdateThread = Thread(target=self._update_paths)
         self.pathUpdateThread.daemon = True
         self.pathUpdateThread.start()
+
+        self.listen_for_changes()
     
     def _update_paths(self):
         while True:
             paths = self.pathQueue.get(block=True)
             while not self.pathQueue.empty():#safe in this instance because nothing else pulls from queue, only adds
-                path = self.pathQueue.get() #always get the most recent version of path, incase several have pushed since the last call.
+                paths = self.pathQueue.get() #always get the most recent version of path, incase several have pushed since the last call.
             self.own_path_ref.set(paths)
 
     def push_updated_paths(self, paths):
@@ -56,18 +58,19 @@ class db_connection():
                 
 
         def paths_listener(event:db.Event):
-            data=event.data
 
-            paths_to_update = dict()
-
-            for key in event:
+            print(f'{event.path=}')
+            print(f'{event.data=}')
+            '''
+            for key in data:
                 if key != self.id:
-                    paths_to_update[key] = event[key]
-            
-            with self.OtherPathsLock:
-                self.otherPaths.update(paths_to_update)
+                    paths_to_update[key] = data[key]
+            '''
+            if event.path != f'/{self.id}':
+                with self.OtherPathsLock:
+                    self.otherPaths[event.path] = event.data
         
         #let's add erase support once the core works
         #self.erase_ref.listen(erase_listener)
-
         self.all_paths_ref.listen(paths_listener)
+        print("configured listener(s)")
