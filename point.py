@@ -17,6 +17,9 @@ from _thread import interrupt_main
 
 import queue
 
+import cloud
+
+db_con = cloud.db_connection()
 hands = handsModule.Hands(static_image_mode=False, min_detection_confidence=0.7, min_tracking_confidence=0.7, max_num_hands=2)
 
 def handle_keypress(event):
@@ -138,13 +141,17 @@ while True:
 
                         if len(current_curve)>1:
                             curves.append(current_curve)
-    curve_count = 0
+    #curve_count = 0
     for curve in curves:
-        curve_count+=1
+        #curve_count+=1
         for i in range(len(curve)-1):
-            cv2.line(frame, curve[i], curve[i+1], (0,200,0), 10)
-    cv2.putText(frame, f"{curve_count=}",
-    (30,30),cv2.FONT_HERSHEY_DUPLEX,
-    1, (88, 205, 54), 1, cv2.LINE_AA)
-
+            cv2.line(frame, curve[i], curve[i+1], (200,15,15), 10)
+    
+    for curves in db_con.otherPaths:
+        for curve in curves:
+            for i in range(len(curve)-1):
+                cv2.line(frame, curve[i], curve[i+1], (15,15,200), 10)
+            
+    #cv2.putText(frame, f"{curve_count=}", (30,30),cv2.FONT_HERSHEY_DUPLEX, 1, (88, 205, 54), 1, cv2.LINE_AA)
+    db_con.push_updated_paths(curves)
     frameQueue.put(frame, block=True)
